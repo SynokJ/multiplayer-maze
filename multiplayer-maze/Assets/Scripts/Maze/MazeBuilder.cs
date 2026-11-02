@@ -5,18 +5,15 @@ using UnityEngine;
 /// </summary>
 public class MazeBuilder : MonoBehaviour
 {
-    [Header("Walls:")]
-    [SerializeField, Min(0.1f)] private float _cellSize = 1.0f;
-    [SerializeField, Min(0.01f)] private float _wallThickness = 0.1f;
-    [Tooltip("Optional. Scaled to the wall size. Empty = plain sprite wall with a BoxCollider2D.")]
-    [SerializeField] private GameObject _wallPrefab;
-    [SerializeField] private Color _wallColor = Color.white;
+    [SerializeField] private MazeWallStyle _style = MazeWallStyle.Default;
 
     private const string _WALLS_ROOT_NAME = "Walls";
 
     private static Sprite _whiteSprite;
 
-    public float CellSize => _cellSize;
+    public MazeWallStyle Style => _style;
+
+    public void SetStyle(MazeWallStyle style) => _style = style;
 
     public void Build(MazeData data)
     {
@@ -54,14 +51,14 @@ public class MazeBuilder : MonoBehaviour
     }
 
     public Vector2 CellToWorld(MazeData data, int x, int y)
-        => CellToWorld(data.width, data.height, x, y);
+        => CellToWorld(data.width, data.height, x, y, _style.cellSize);
 
-    public Vector2 CellToWorld(int mazeWidth, int mazeHeight, int x, int y)
-        => (Vector2)transform.position + GridOrigin(mazeWidth, mazeHeight) + new Vector2(x + 0.5f, y + 0.5f) * _cellSize;
+    public Vector2 CellToWorld(int mazeWidth, int mazeHeight, int x, int y, float cellSize)
+        => (Vector2)transform.position + GridOrigin(mazeWidth, mazeHeight, cellSize) + new Vector2(x + 0.5f, y + 0.5f) * cellSize;
 
     // Bottom-left corner of the maze in local space; the maze is centered on this object.
-    public Vector2 GridOrigin(int mazeWidth, int mazeHeight)
-        => new Vector2(-mazeWidth, -mazeHeight) * (_cellSize * 0.5f);
+    public Vector2 GridOrigin(int mazeWidth, int mazeHeight, float cellSize)
+        => new Vector2(-mazeWidth, -mazeHeight) * (cellSize * 0.5f);
 
     private Transform GetOrCreateWallsRoot()
     {
@@ -77,14 +74,17 @@ public class MazeBuilder : MonoBehaviour
     // (gridX, gridY) is the wall's start corner; a wall runs along +x (horizontal) or +y (vertical).
     private void SpawnWall(Transform root, MazeData data, int gridX, int gridY, bool horizontal)
     {
-        Vector2 local = GridOrigin(data.width, data.height) + new Vector2(gridX, gridY) * _cellSize;
-        local += horizontal ? new Vector2(_cellSize * 0.5f, 0.0f) : new Vector2(0.0f, _cellSize * 0.5f);
+        float cell = _style.cellSize;
+        float thickness = _style.wallThickness;
+
+        Vector2 local = GridOrigin(data.width, data.height, cell) + new Vector2(gridX, gridY) * cell;
+        local += horizontal ? new Vector2(cell * 0.5f, 0.0f) : new Vector2(0.0f, cell * 0.5f);
 
         Vector2 size = horizontal
-            ? new Vector2(_cellSize + _wallThickness, _wallThickness)
-            : new Vector2(_wallThickness, _cellSize + _wallThickness);
+            ? new Vector2(cell + thickness, thickness)
+            : new Vector2(thickness, cell + thickness);
 
-        GameObject wall = _wallPrefab != null ? Instantiate(_wallPrefab, root) : CreatePlainWall(root);
+        GameObject wall = _style.wallPrefab != null ? Instantiate(_style.wallPrefab, root) : CreatePlainWall(root);
 
         wall.transform.localPosition = local;
         wall.transform.localScale = new Vector3(size.x, size.y, 1.0f);
@@ -97,7 +97,7 @@ public class MazeBuilder : MonoBehaviour
 
         var spriteRenderer = wall.AddComponent<SpriteRenderer>();
         spriteRenderer.sprite = GetWhiteSprite();
-        spriteRenderer.color = _wallColor;
+        spriteRenderer.color = _style.wallColor;
 
         wall.AddComponent<BoxCollider2D>();
         return wall;

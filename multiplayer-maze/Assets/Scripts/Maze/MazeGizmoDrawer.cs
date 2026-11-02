@@ -23,8 +23,8 @@ public class MazeGizmoDrawer : MonoBehaviour
             || _previewData.height != settings.height || _previewData.seed != settings.seed)
             _previewData = settings.CreateData();
 
-        float cell = builder.CellSize;
-        Vector3 origin = transform.position + (Vector3)builder.GridOrigin(_previewData.width, _previewData.height);
+        float cell = controller.WallStyle.cellSize;
+        Vector3 origin = transform.position + (Vector3)builder.GridOrigin(_previewData.width, _previewData.height, cell);
         Vector3 right = Vector3.right * cell;
         Vector3 up = Vector3.up * cell;
 
@@ -49,9 +49,9 @@ public class MazeGizmoDrawer : MonoBehaviour
         var farthest = _previewData.FindFarthestCell(centerX, centerY);
 
         Gizmos.color = Color.green;
-        Gizmos.DrawWireSphere(builder.CellToWorld(_previewData, centerX, centerY), cell * 0.3f);
+        Gizmos.DrawWireSphere(builder.CellToWorld(_previewData.width, _previewData.height, centerX, centerY, cell), cell * 0.3f);
         Gizmos.color = Color.red;
-        Gizmos.DrawWireSphere(builder.CellToWorld(_previewData, farthest.x, farthest.y), cell * 0.3f);
+        Gizmos.DrawWireSphere(builder.CellToWorld(_previewData.width, _previewData.height, farthest.x, farthest.y, cell), cell * 0.3f);
     }
 #endif
 }

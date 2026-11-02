@@ -38,9 +38,22 @@ public class NgoRoomServer : MonoBehaviour, IPlayerSource
 
     private void Start()
     {
-        // The lobby starts room processes with -batchmode; a browser or the Editor never does.
-        if (Application.isBatchMode)
+        // A Dedicated Server build (the Linux Server profile) or a process the lobby started with
+        // -batchmode is a room server; a browser or the Editor never is.
+        if (IsServerProcess)
             StartDedicatedServer();
+    }
+
+    private static bool IsServerProcess
+    {
+        get
+        {
+#if UNITY_SERVER
+            return true;
+#else
+            return Application.isBatchMode;
+#endif
+        }
     }
 
     private void OnDestroy()
@@ -197,7 +210,7 @@ public class NgoRoomServer : MonoBehaviour, IPlayerSource
 
         Debug.Log("ROOM_READY " + _options.RoomId + " " + _options.Port);
 
-        if (Application.isBatchMode && !string.IsNullOrEmpty(_options.LobbyUrl))
+        if (IsServerProcess && !string.IsNullOrEmpty(_options.LobbyUrl))
             StartCoroutine(HeartbeatLoop());
     }
 

@@ -107,3 +107,6 @@ UIElementsSchema/
 
 # Auto-generated cache in Assets folder
 [Aa]ssets/[Ss]ceneDependencyCache*
+
+# Old single-player version kept for reference
+/_old/

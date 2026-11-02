@@ -4,8 +4,7 @@ using UnityEngine.Serialization;
 
 /// <summary>
 /// Controller: wires settings, generation and building together.
-/// Host: pick a level and a seed, Generate(level, seed), send both to clients.
-/// Client: Generate(level, receivedSeed).
+/// Every peer (server and clients) calls Generate(level, seed) with the same replicated values.
 /// The serialized fields are inspector defaults only; Generate never overwrites them.
 /// </summary>
 [RequireComponent(typeof(MazeBuilder))]
@@ -15,8 +14,6 @@ public class MazeController : MonoBehaviour
     [SerializeField] private LevelConfigSO _level;
     [FormerlySerializedAs("_settings")]
     [SerializeField] private MazeSettings _defaultSettings = MazeSettings.Default;
-    [Tooltip("Single-player testing. With networking, the host calls Generate instead.")]
-    [SerializeField] private bool _generateOnStart = true;
 
     private MazeBuilder _builder;
 
@@ -32,12 +29,7 @@ public class MazeController : MonoBehaviour
 
     public MazeWallStyle PreviewWallStyle => _level != null ? _level.WallStyle : GetBuilder().DefaultStyle;
 
-    private void Start()
-    {
-        if (_generateOnStart)
-            Generate();
-    }
-
+    // Used by the Editor buttons; at runtime GameNetwork builds the maze from the replicated seed.
     public void Generate()
     {
         if (_level != null)
@@ -48,8 +40,6 @@ public class MazeController : MonoBehaviour
 
     public void Generate(LevelConfigSO level, int seed)
         => Generate(level.CreateSettings(seed), level.WallStyle);
-
-    public void Generate(MazeSettings settings) => Generate(settings, GetBuilder().DefaultStyle);
 
     public void Generate(MazeSettings settings, MazeWallStyle style)
     {

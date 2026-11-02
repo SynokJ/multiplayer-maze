@@ -1,27 +1,28 @@
 using UnityEngine;
 
 /// <summary>
-/// Read-only level definition. Never write runtime state into it: the asset is shared
+/// Model: read-only level definition. Never write runtime state into it: the asset is shared
 /// and its changes persist in the Editor. Build plain C# state from it instead.
 /// </summary>
 [CreateAssetMenu(fileName = "Level_01", menuName = "Maze/Level Config")]
 public class LevelConfigSO : ScriptableObject
 {
     [Header("Maze:")]
-    [Min(2)] public int width = 11;
-    [Min(2)] public int height = 11;
+    [SerializeField, Range(MazeSettings.MIN_SIZE, MazeSettings.MAX_SIZE)] private int _width = 11;
+    [SerializeField, Range(MazeSettings.MIN_SIZE, MazeSettings.MAX_SIZE)] private int _height = 11;
     [Tooltip("On: the level is always the same maze. Off: the host picks a random seed.")]
-    public bool useFixedSeed;
-    public int fixedSeed = 12345;
+    [SerializeField] private bool _useFixedSeed;
+    [SerializeField] private int _fixedSeed = 12345;
 
     [Header("Walls:")]
-    public MazeWallStyle wallStyle = MazeWallStyle.Default;
+    [SerializeField] private MazeWallStyle _wallStyle = MazeWallStyle.Default;
 
-    [Header("Gameplay:")]
-    [Min(0)] public int enemyCount = 3;
-    [Min(0)] public int itemCount = 5;
-    [Min(0.0f)] public float timeLimitSeconds = 120.0f;
+    public int Width => _width;
+    public int Height => _height;
+    public bool UseFixedSeed => _useFixedSeed;
+    public int FixedSeed => _fixedSeed;
+    public MazeWallStyle WallStyle => _wallStyle;
 
     public MazeSettings CreateSettings(int randomSeed)
-        => new MazeSettings(width, height, useFixedSeed ? fixedSeed : randomSeed);
+        => new MazeSettings(_width, _height, _useFixedSeed ? _fixedSeed : randomSeed);
 }

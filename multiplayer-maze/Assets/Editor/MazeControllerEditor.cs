@@ -19,7 +19,7 @@ public class MazeControllerEditor : Editor
         if (GUILayout.Button("Random Seed + Generate"))
             Run(controller, "Generate Maze (random seed)", () =>
             {
-                controller.SetSeed(Random.Range(int.MinValue, int.MaxValue));
+                controller.SetDefaultSeed(Random.Range(int.MinValue, int.MaxValue));
                 controller.Generate();
             });
 

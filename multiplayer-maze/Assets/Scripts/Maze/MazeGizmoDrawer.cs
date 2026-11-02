@@ -15,15 +15,13 @@ public class MazeGizmoDrawer : MonoBehaviour
         var controller = GetComponent<MazeController>();
         var builder = GetComponent<MazeBuilder>();
 
-        MazeSettings settings = controller.Settings;
-        if (settings.width < 2 || settings.height < 2)
-            return;
+        MazeSettings settings = controller.PreviewSettings;
 
         if (_previewData == null || _previewData.width != settings.width
             || _previewData.height != settings.height || _previewData.seed != settings.seed)
             _previewData = settings.CreateData();
 
-        float cell = controller.WallStyle.cellSize;
+        float cell = controller.PreviewWallStyle.cellSize;
         Vector3 origin = transform.position + (Vector3)builder.GridOrigin(_previewData.width, _previewData.height, cell);
         Vector3 right = Vector3.right * cell;
         Vector3 up = Vector3.up * cell;

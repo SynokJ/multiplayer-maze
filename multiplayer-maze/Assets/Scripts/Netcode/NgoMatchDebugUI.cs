@@ -113,7 +113,7 @@ public class NgoMatchDebugUI : MonoBehaviour
     private void DrawRoom()
     {
         if (_game == null)
-            _game = FindFirstObjectByType<GameNetwork>();
+            _game = FindAnyObjectByType<GameNetwork>();
 
         if (_game == null || !_game.IsSpawned)
         {

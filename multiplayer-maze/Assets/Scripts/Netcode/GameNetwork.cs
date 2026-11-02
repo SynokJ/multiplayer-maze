@@ -56,7 +56,7 @@ public class GameNetwork : NetworkBehaviour
 
     public override void OnNetworkSpawn()
     {
-        _maze = FindFirstObjectByType<MazeController>();
+        _maze = FindAnyObjectByType<MazeController>();
         Phase.OnValueChanged += OnPhaseChanged;
 
         if (IsServer)
@@ -134,7 +134,7 @@ public class GameNetwork : NetworkBehaviour
         Phase.Value = _session.Data.Phase;
 
         // Connections that arrived before this object was ready are replayed into the session.
-        var roomServer = FindFirstObjectByType<NgoRoomServer>();
+        var roomServer = FindAnyObjectByType<NgoRoomServer>();
         if (roomServer != null)
         {
             _bridge = new SessionPlayerBridge(_session, roomServer);

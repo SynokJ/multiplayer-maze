@@ -136,7 +136,7 @@ public static class NgoSceneSetup
 
     private static NetworkManager EnsureNetworkManager(NetworkPrefabsList prefabList)
     {
-        var manager = Object.FindFirstObjectByType<NetworkManager>();
+        var manager = Object.FindAnyObjectByType<NetworkManager>();
         GameObject host;
 
         if (manager != null)

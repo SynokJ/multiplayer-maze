@@ -34,6 +34,14 @@ Every system follows SOLID together with MVC. Keep KISS in mind: do not add a pa
 - Model state syncs to clients, and every client's View reacts.
 - Only send small data: a level index and a seed, never an asset. The same `(width, height, seed)` must build the same maze on every machine.
 
+## Layers (Assets/Scripts)
+- `Maze/`: seeded maze. `MazeData` is pure C#; `MazeBuilder` is the View; `MazeController` wires them.
+- `Gameplay/`: `GameData` (Model), `GameSession` (pure C# rules and flow: Lobby, Countdown, Playing, Won/Lost, Restart), `GameController` (thin Unity wrapper).
+- `Match/`: `IMatchmaker` (lobby HTTP or offline), `IMatchClient` (player connection), `IPlayerSource` (room server connection events), `MatchFlow`, `SessionPlayerBridge`. The NGO transport implements the two interfaces later.
+- Keep Unity types out of the pure C# files so they run under `dotnet test` (C# 9 only, Unity 6).
+- Never pause the game with `Time.timeScale`; the server advances time through `GameSession.Tick`.
+- The lobby API contract and room flow are described in the WebGL implementation guide in `Docs`.
+
 ## Code style
 - Private serialized fields use `_camelCase`, constants use `_UPPER_CASE`, matching the existing scripts.
 - Fix typos instead of copying them from `_old/` (`Scritps`, `Animaiton`, `Ynadex`).

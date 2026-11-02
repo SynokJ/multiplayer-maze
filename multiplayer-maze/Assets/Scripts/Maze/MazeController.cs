@@ -49,6 +49,8 @@ public class MazeController : MonoBehaviour
     public void Generate(LevelConfigSO level, int seed)
         => Generate(level.CreateSettings(seed), level.WallStyle);
 
+    public void Generate(MazeSettings settings) => Generate(settings, GetBuilder().DefaultStyle);
+
     public void Generate(MazeSettings settings, MazeWallStyle style)
     {
         CurrentSettings = settings.Clamped();

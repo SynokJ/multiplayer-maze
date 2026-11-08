@@ -59,6 +59,7 @@ public static class NgoSceneSetup
         NetworkManager manager = EnsureNetworkManager(prefabList);
         EnsureMatchObject(gamePrefab);
         EnsureCameraFollow();
+        EnsureJoystick();
 
         PlayerSettings.runInBackground = true;
         EnsureSceneInBuild(scene.path);
@@ -284,13 +285,24 @@ public static class NgoSceneSetup
         roomServerSerialized.FindProperty("_gameNetworkPrefab").objectReferenceValue = gamePrefab;
         roomServerSerialized.ApplyModifiedPropertiesWithoutUndo();
 
-        var ui = match.GetComponent<NgoMatchDebugUI>();
-        if (ui == null)
-            ui = match.AddComponent<NgoMatchDebugUI>();
+        var view = match.GetComponent<MatchMenuView>();
+        if (view == null)
+            view = match.AddComponent<MatchMenuView>();
 
-        var uiSerialized = new SerializedObject(ui);
-        uiSerialized.FindProperty("_roomServer").objectReferenceValue = roomServer;
-        uiSerialized.ApplyModifiedPropertiesWithoutUndo();
+        var menu = match.GetComponent<MatchMenuController>();
+        if (menu == null)
+            menu = match.AddComponent<MatchMenuController>();
+
+        var menuSerialized = new SerializedObject(menu);
+        menuSerialized.FindProperty("_view").objectReferenceValue = view;
+        menuSerialized.FindProperty("_roomServer").objectReferenceValue = roomServer;
+        menuSerialized.ApplyModifiedPropertiesWithoutUndo();
+    }
+
+    private static void EnsureJoystick()
+    {
+        if (Object.FindAnyObjectByType<FloatingJoystick>() == null)
+            new GameObject("Joystick").AddComponent<FloatingJoystick>();
     }
 
     private static void EnsureCameraFollow()

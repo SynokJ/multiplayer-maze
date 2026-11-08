@@ -10,6 +10,7 @@ public static class PlainSprites
 
     private static Sprite _square;
     private static Sprite _circle;
+    private static Sprite _rounded;
 
     public static Sprite Square
     {
@@ -50,6 +51,40 @@ public static class PlainSprites
             }
 
             return _circle;
+        }
+    }
+
+    // 9-slice friendly rounded rectangle for UI panels and buttons (use Image.Type.Sliced).
+    public static Sprite Rounded
+    {
+        get
+        {
+            if (_rounded == null)
+            {
+                const int size = 64;
+                const int radius = 20;
+
+                var texture = NewTexture(size);
+                for (int y = 0; y < size; ++y)
+                    for (int x = 0; x < size; ++x)
+                    {
+                        // Distance from the nearest corner circle centre, 0 along the straight edges.
+                        float cx = Mathf.Clamp(x + 0.5f, radius, size - radius);
+                        float cy = Mathf.Clamp(y + 0.5f, radius, size - radius);
+                        float dx = x + 0.5f - cx;
+                        float dy = y + 0.5f - cy;
+                        float alpha = Mathf.Clamp01(radius - Mathf.Sqrt(dx * dx + dy * dy) + 0.5f);
+                        texture.SetPixel(x, y, new Color(1.0f, 1.0f, 1.0f, alpha));
+                    }
+
+                texture.Apply();
+
+                _rounded = Sprite.Create(texture, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), 100.0f, 0,
+                    SpriteMeshType.FullRect, new Vector4(radius, radius, radius, radius));
+                _rounded.hideFlags = HideFlags.HideAndDontSave;
+            }
+
+            return _rounded;
         }
     }
 

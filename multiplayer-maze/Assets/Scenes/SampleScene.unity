@@ -129,7 +129,8 @@ GameObject:
   m_Component:
   - component: {fileID: 41901389}
   - component: {fileID: 41901391}
-  - component: {fileID: 41901390}
+  - component: {fileID: 41901393}
+  - component: {fileID: 41901392}
   m_Layer: 0
   m_Name: Match
   m_TagString: Untagged
@@ -152,23 +153,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &41901390
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 41901388}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ca8e9f615212433c90a4d504b3f169f1, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: MultiplayerMaze.Netcode::NgoMatchDebugUI
-  _roomServer: {fileID: 41901391}
-  _lobbyUrl: 
-  _playerName: Player
-  _roomCode: 
-  _newRoomPlayers: 4
 --- !u!114 &41901391
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -183,6 +167,33 @@ MonoBehaviour:
   m_EditorClassIdentifier: MultiplayerMaze.Netcode::NgoRoomServer
   _gameNetworkPrefab: {fileID: 4064420348483832567, guid: 92d28aad82a910f4c8b0c6127891cb66, type: 3}
   _localHostPort: 7777
+--- !u!114 &41901392
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 41901388}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 26bd0b97399e34d4c840a29ab5e375ff, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: MultiplayerMaze.Netcode::MatchMenuController
+  _view: {fileID: 41901393}
+  _roomServer: {fileID: 41901391}
+  _lobbyUrl: 
+--- !u!114 &41901393
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 41901388}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 23f642ef90df3d94d80d27a563c7fc46, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: MultiplayerMaze.Runtime::MatchMenuView
 --- !u!1 &519420028
 GameObject:
   m_ObjectHideFlags: 0
@@ -592,6 +603,51 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1776614308
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1776614310}
+  - component: {fileID: 1776614309}
+  m_Layer: 0
+  m_Name: Joystick
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1776614309
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1776614308}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a4755d5c344198047abb1dd9b037f093, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: MultiplayerMaze.Runtime::FloatingJoystick
+  _color: {r: 1, g: 1, b: 1, a: 0.35}
+--- !u!4 &1776614310
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1776614308}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
@@ -601,3 +657,4 @@ SceneRoots:
   - {fileID: 1164685819}
   - {fileID: 41901389}
   - {fileID: 782958245}
+  - {fileID: 1776614310}

@@ -26,6 +26,7 @@ public class GameNetwork : NetworkBehaviour
     public NetworkList<PlayerState> Players;
 
     [SerializeField] private LevelListSO _levels;
+    [SerializeField] private RoundSpawner _spawner;
 
     private GameSession _session;
     private SessionPlayerBridge _bridge;
@@ -149,7 +150,47 @@ public class GameNetwork : NetworkBehaviour
         PushRound();
         PushTimers();
         Phase.Value = to;
+
+        // Setting the phase has built (or cleared) the maze on the server, so the world can follow.
+        UpdateWorld(to);
     }
+
+    private void UpdateWorld(GamePhase phase)
+    {
+        if (_spawner == null)
+            return;
+
+        switch (phase)
+        {
+            case GamePhase.Countdown:
+                if (_maze != null && _maze.Data != null)
+                    _spawner.SpawnRound(this, _maze, _session.Data.Players, _session.Data.ItemsRequired);
+                break;
+
+            case GamePhase.Playing:
+                _spawner.SetMovementEnabled(true);
+                break;
+
+            case GamePhase.Won:
+            case GamePhase.Lost:
+                _spawner.SetMovementEnabled(false);
+                break;
+
+            case GamePhase.Lobby:
+                _spawner.SetMovementEnabled(false);
+                _spawner.Clear();
+                break;
+        }
+    }
+
+    // Server only: called by ItemPickup and HatchTrigger when a player touches them.
+    public void TouchItem(ItemPickup item, ulong playerId)
+    {
+        if (_session != null && item.IsSpawned && _session.CollectItem(playerId))
+            item.NetworkObject.Despawn();
+    }
+
+    public void TouchHatch(ulong playerId) => _session?.ReachHatch(playerId);
 
     private void OnSessionItemsChanged() => Items.Value = _session.Data.ItemsCollected;
 
@@ -169,6 +210,9 @@ public class GameNetwork : NetworkBehaviour
 
     private void OnSessionPlayerLeft(ulong id)
     {
+        if (_spawner != null)
+            _spawner.Release(id);
+
         for (int i = 0; i < Players.Count; ++i)
             if (Players[i].id == id)
             {

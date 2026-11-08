@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 7870364764538422314}
   - component: {fileID: 5639593809491977487}
   - component: {fileID: 4064420348483832567}
+  - component: {fileID: 906274732480984689}
   m_Layer: 0
   m_Name: GameNetwork
   m_TagString: Untagged
@@ -78,3 +79,19 @@ MonoBehaviour:
       MinSecondsBetweenUpdates: 0
       MaxSecondsBetweenUpdates: 0
   _levels: {fileID: 11400000, guid: 2523bc3d887fbdf43ad6bd212719761f, type: 2}
+  _spawner: {fileID: 906274732480984689}
+--- !u!114 &906274732480984689
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5777743435843457796}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 970e62241f9f4cb4cb9323a96a4714ca, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: MultiplayerMaze.Netcode::RoundSpawner
+  _avatarPrefab: {fileID: 7616195651282384258, guid: ab93b4afb65088f40abea1c011476740, type: 3}
+  _itemPrefab: {fileID: 7805044755490586328, guid: 68128a18cbe7acb4c8c360027c5ee9ee, type: 3}
+  _hatchPrefab: {fileID: 7956885963228546073, guid: 6858124e854cf2f45ba5437c0e8b744f, type: 3}

@@ -22,6 +22,7 @@ public class MazeController : MonoBehaviour
 
     public MazeData Data { get; private set; }
     public MazeSettings CurrentSettings { get; private set; }
+    public MazeWallStyle CurrentStyle { get; private set; }
 
     // What the inspector values would generate right now (used by the preview gizmo).
     public MazeSettings PreviewSettings
@@ -44,11 +45,16 @@ public class MazeController : MonoBehaviour
     public void Generate(MazeSettings settings, MazeWallStyle style)
     {
         CurrentSettings = settings.Clamped();
+        CurrentStyle = style;
         Data = CurrentSettings.CreateData();
 
         GetBuilder().Build(Data, style);
         MazeGenerated?.Invoke(Data);
     }
+
+    // World position of a cell's center. Only valid while a maze is built.
+    public Vector2 CellToWorld(int x, int y)
+        => GetBuilder().CellToWorld(CurrentSettings.width, CurrentSettings.height, x, y, CurrentStyle.cellSize);
 
     public void Clear()
     {

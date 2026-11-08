@@ -1,5 +1,6 @@
 using System.IO;
 using Unity.Netcode;
+using Unity.Netcode.Components;
 using Unity.Netcode.Transports.UTP;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -15,6 +16,9 @@ public static class NgoSceneSetup
     private const string _SCENE_PATH = "Assets/Scenes/SampleScene.unity";
     private const string _NETWORK_FOLDER = "Assets/Prefabs/Network";
     private const string _GAME_PREFAB_PATH = _NETWORK_FOLDER + "/GameNetwork.prefab";
+    private const string _PLAYER_PREFAB_PATH = _NETWORK_FOLDER + "/Player.prefab";
+    private const string _ITEM_PREFAB_PATH = _NETWORK_FOLDER + "/Item.prefab";
+    private const string _HATCH_PREFAB_PATH = _NETWORK_FOLDER + "/Hatch.prefab";
     private const string _PREFAB_LIST_PATH = _NETWORK_FOLDER + "/MazeNetworkPrefabs.asset";
     private const string _LEVEL_PATH = "Assets/Data/Levels/Level_01.asset";
     private const string _LEVEL_LIST_PATH = "Assets/Data/Levels/LevelList.asset";
@@ -44,13 +48,17 @@ public static class NgoSceneSetup
         EnsureFolder(_NETWORK_FOLDER);
 
         LevelListSO levelList = EnsureLevelList();
-        GameNetwork gamePrefab = EnsureGameNetworkPrefab(levelList);
-        NetworkPrefabsList prefabList = EnsurePrefabList(gamePrefab);
+        PlayerAvatar playerPrefab = EnsurePlayerPrefab();
+        ItemPickup itemPrefab = EnsureItemPrefab();
+        HatchTrigger hatchPrefab = EnsureHatchPrefab();
+        GameNetwork gamePrefab = EnsureGameNetworkPrefab(levelList, playerPrefab, itemPrefab, hatchPrefab);
+        NetworkPrefabsList prefabList = EnsurePrefabList(gamePrefab.gameObject, playerPrefab.gameObject, itemPrefab.gameObject, hatchPrefab.gameObject);
 
         RemoveMissingScripts(scene);
 
         NetworkManager manager = EnsureNetworkManager(prefabList);
         EnsureMatchObject(gamePrefab);
+        EnsureCameraFollow();
 
         PlayerSettings.runInBackground = true;
         EnsureSceneInBuild(scene.path);
@@ -89,7 +97,85 @@ public static class NgoSceneSetup
         return list;
     }
 
-    private static GameNetwork EnsureGameNetworkPrefab(LevelListSO levelList)
+    // The player's body is a placeholder: a circle sprite is assigned at runtime until real art exists.
+    private static PlayerAvatar EnsurePlayerPrefab()
+    {
+        if (!File.Exists(_PLAYER_PREFAB_PATH))
+        {
+            var root = new GameObject("Player");
+            root.transform.localScale = Vector3.one * 1.2f;
+
+            var spriteRenderer = root.AddComponent<SpriteRenderer>();
+            spriteRenderer.sortingOrder = 10;
+
+            var body = root.AddComponent<Rigidbody2D>();
+            body.gravityScale = 0.0f;
+            body.freezeRotation = true;
+            body.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
+            body.sleepMode = RigidbodySleepMode2D.NeverSleep;
+
+            root.AddComponent<CircleCollider2D>().radius = 0.5f;
+            root.AddComponent<NetworkObject>();
+            root.AddComponent<NetworkTransform>();
+            root.AddComponent<NetworkRigidbody2D>();
+            root.AddComponent<LocalMoveInput>();
+            root.AddComponent<PlayerAvatar>();
+
+            PrefabUtility.SaveAsPrefabAsset(root, _PLAYER_PREFAB_PATH);
+            Object.DestroyImmediate(root);
+        }
+
+        return AssetDatabase.LoadAssetAtPath<GameObject>(_PLAYER_PREFAB_PATH).GetComponent<PlayerAvatar>();
+    }
+
+    private static ItemPickup EnsureItemPrefab()
+    {
+        if (!File.Exists(_ITEM_PREFAB_PATH))
+        {
+            var root = new GameObject("Item");
+            root.transform.localScale = Vector3.one * 0.8f;
+
+            var spriteRenderer = root.AddComponent<SpriteRenderer>();
+            spriteRenderer.color = new Color(1.0f, 0.85f, 0.2f);
+            spriteRenderer.sortingOrder = 5;
+
+            var trigger = root.AddComponent<CircleCollider2D>();
+            trigger.radius = 0.5f;
+            trigger.isTrigger = true;
+
+            root.AddComponent<NetworkObject>();
+            root.AddComponent<ItemPickup>();
+
+            PrefabUtility.SaveAsPrefabAsset(root, _ITEM_PREFAB_PATH);
+            Object.DestroyImmediate(root);
+        }
+
+        return AssetDatabase.LoadAssetAtPath<GameObject>(_ITEM_PREFAB_PATH).GetComponent<ItemPickup>();
+    }
+
+    private static HatchTrigger EnsureHatchPrefab()
+    {
+        if (!File.Exists(_HATCH_PREFAB_PATH))
+        {
+            var root = new GameObject("Hatch");
+            root.transform.localScale = Vector3.one * 2.0f;
+
+            var spriteRenderer = root.AddComponent<SpriteRenderer>();
+            spriteRenderer.color = new Color(0.2f, 0.8f, 0.4f);
+            spriteRenderer.sortingOrder = 4;
+
+            root.AddComponent<BoxCollider2D>().isTrigger = true;
+            root.AddComponent<NetworkObject>();
+            root.AddComponent<HatchTrigger>();
+
+            PrefabUtility.SaveAsPrefabAsset(root, _HATCH_PREFAB_PATH);
+            Object.DestroyImmediate(root);
+        }
+
+        return AssetDatabase.LoadAssetAtPath<GameObject>(_HATCH_PREFAB_PATH).GetComponent<HatchTrigger>();
+    }
+
+    private static GameNetwork EnsureGameNetworkPrefab(LevelListSO levelList, PlayerAvatar player, ItemPickup item, HatchTrigger hatch)
     {
         if (!File.Exists(_GAME_PREFAB_PATH))
         {
@@ -103,8 +189,19 @@ public static class NgoSceneSetup
         GameObject contents = PrefabUtility.LoadPrefabContents(_GAME_PREFAB_PATH);
         try
         {
+            var spawner = contents.GetComponent<RoundSpawner>();
+            if (spawner == null)
+                spawner = contents.AddComponent<RoundSpawner>();
+
+            var spawnerSerialized = new SerializedObject(spawner);
+            spawnerSerialized.FindProperty("_avatarPrefab").objectReferenceValue = player;
+            spawnerSerialized.FindProperty("_itemPrefab").objectReferenceValue = item;
+            spawnerSerialized.FindProperty("_hatchPrefab").objectReferenceValue = hatch;
+            spawnerSerialized.ApplyModifiedPropertiesWithoutUndo();
+
             var serialized = new SerializedObject(contents.GetComponent<GameNetwork>());
             serialized.FindProperty("_levels").objectReferenceValue = levelList;
+            serialized.FindProperty("_spawner").objectReferenceValue = spawner;
             serialized.ApplyModifiedPropertiesWithoutUndo();
 
             PrefabUtility.SaveAsPrefabAsset(contents, _GAME_PREFAB_PATH);
@@ -118,7 +215,7 @@ public static class NgoSceneSetup
         return AssetDatabase.LoadAssetAtPath<GameObject>(_GAME_PREFAB_PATH).GetComponent<GameNetwork>();
     }
 
-    private static NetworkPrefabsList EnsurePrefabList(GameNetwork gamePrefab)
+    private static NetworkPrefabsList EnsurePrefabList(params GameObject[] prefabs)
     {
         var list = AssetDatabase.LoadAssetAtPath<NetworkPrefabsList>(_PREFAB_LIST_PATH);
         if (list == null)
@@ -127,8 +224,9 @@ public static class NgoSceneSetup
             AssetDatabase.CreateAsset(list, _PREFAB_LIST_PATH);
         }
 
-        if (!list.Contains(gamePrefab.gameObject))
-            list.Add(new NetworkPrefab { Prefab = gamePrefab.gameObject });
+        foreach (GameObject prefab in prefabs)
+            if (!list.Contains(prefab))
+                list.Add(new NetworkPrefab { Prefab = prefab });
 
         EditorUtility.SetDirty(list);
         return list;
@@ -193,6 +291,13 @@ public static class NgoSceneSetup
         var uiSerialized = new SerializedObject(ui);
         uiSerialized.FindProperty("_roomServer").objectReferenceValue = roomServer;
         uiSerialized.ApplyModifiedPropertiesWithoutUndo();
+    }
+
+    private static void EnsureCameraFollow()
+    {
+        Camera camera = Camera.main;
+        if (camera != null && camera.GetComponent<CameraFollow>() == null)
+            camera.gameObject.AddComponent<CameraFollow>();
     }
 
     // Components whose script was deleted (the old GameController) would only log errors.

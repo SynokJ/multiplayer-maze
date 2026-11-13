@@ -1,0 +1,22 @@
+{
+    "name": "MultiplayerMaze.Editor",
+    "rootNamespace": "",
+    "references": [
+        "MultiplayerMaze.Runtime",
+        "MultiplayerMaze.Netcode",
+        "Unity.Netcode.Runtime",
+        "Unity.Collections",
+        "Unity.Networking.Transport"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

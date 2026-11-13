@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4cffe47342ea49bb96d5ea7bcd700226, type: 3}
+  m_Name: Level_01
+  m_EditorClassIdentifier: 
+  _width: 30
+  _height: 30
+  _useFixedSeed: 0
+  _fixedSeed: 12345
+  _wallStyle:
+    cellSize: 4
+    wallThickness: 0.1
+    wallPrefab: {fileID: 8032692738926109807, guid: dbf585fb055ad234ea904322145e6539, type: 3}
+    wallColor: {r: 1, g: 0.7601948, b: 0, a: 1}
+  _rules:
+    timeLimitSeconds: 120
+    itemsRequired: 5
+    startingLives: 1
+    countdownSeconds: 3
+    minPlayers: 1
+    maxPlayers: 8

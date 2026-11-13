@@ -431,6 +431,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 23f642ef90df3d94d80d27a563c7fc46, type: 3}
   m_Name: 
   m_EditorClassIdentifier: MultiplayerMaze.Runtime::MatchMenuView
+  _skins: {fileID: 11400000, guid: 2f8a6d0c4b1e47a39d5c7e82b0a1f636, type: 2}
+  _itemIcon: {fileID: 77132070, guid: af4c91dc132c8164686531b26c33e397, type: 3}
+  _panelSprite: {fileID: 7482667652216324306, guid: 4c472b53121f71042ae68604cbe5b4aa, type: 3}
 --- !u!114 &950943636
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -21,6 +21,8 @@ public static class NgoSceneSetup
     private const string _ITEM_PREFAB_PATH = _NETWORK_FOLDER + "/Item.prefab";
     private const string _HATCH_PREFAB_PATH = _NETWORK_FOLDER + "/Hatch.prefab";
     private const string _PREFAB_LIST_PATH = _NETWORK_FOLDER + "/MazeNetworkPrefabs.asset";
+    private const string _PANEL_SPRITE_PATH = "Assets/Sprites/Wall.png";
+    private const string _SKINS_PATH = "Assets/Data/CharacterSkins.asset";
     private static readonly string[] _PLAYER_SKIN_PATHS =
     {
         "Assets/Prefabs/Characters/Player/Player_GFX.prefab",
@@ -64,7 +66,8 @@ public static class NgoSceneSetup
         EnsureFolder(_NETWORK_FOLDER);
 
         LevelListSO levelList = EnsureLevelList();
-        PlayerAvatar playerPrefab = EnsurePlayerPrefab();
+        CharacterSkinsSO skins = EnsureSkins();
+        PlayerAvatar playerPrefab = EnsurePlayerPrefab(skins);
         ItemPickup itemPrefab = EnsureItemPrefab();
         HatchTrigger hatchPrefab = EnsureHatchPrefab();
         GameNetwork gamePrefab = EnsureGameNetworkPrefab(levelList, playerPrefab, itemPrefab, hatchPrefab);
@@ -73,7 +76,7 @@ public static class NgoSceneSetup
         RemoveMissingScripts(scene);
 
         NetworkManager manager = EnsureNetworkManager(prefabList);
-        EnsureMatchObject(gamePrefab);
+        EnsureMatchObject(gamePrefab, skins);
         EnsureCameraFollow();
         EnsureJoystick();
         EnsureDarkAmbient();
@@ -116,7 +119,27 @@ public static class NgoSceneSetup
     }
 
     // The body is physics only; the art is a skin prefab that PlayerAvatar adds as a child at spawn.
-    private static PlayerAvatar EnsurePlayerPrefab()
+    private static CharacterSkinsSO EnsureSkins()
+    {
+        var skins = AssetDatabase.LoadAssetAtPath<CharacterSkinsSO>(_SKINS_PATH);
+        if (skins != null)
+            return skins;
+
+        skins = ScriptableObject.CreateInstance<CharacterSkinsSO>();
+        AssetDatabase.CreateAsset(skins, _SKINS_PATH);
+
+        var serialized = new SerializedObject(skins);
+        SerializedProperty list = serialized.FindProperty("_skins");
+        list.arraySize = _PLAYER_SKIN_PATHS.Length;
+        for (int i = 0; i < _PLAYER_SKIN_PATHS.Length; ++i)
+            list.GetArrayElementAtIndex(i).objectReferenceValue = AssetDatabase.LoadAssetAtPath<GameObject>(_PLAYER_SKIN_PATHS[i]);
+        serialized.ApplyModifiedPropertiesWithoutUndo();
+
+        EditorUtility.SetDirty(skins);
+        return skins;
+    }
+
+    private static PlayerAvatar EnsurePlayerPrefab(CharacterSkinsSO skins)
     {
         if (!File.Exists(_PLAYER_PREFAB_PATH))
         {
@@ -139,10 +162,7 @@ public static class NgoSceneSetup
             var avatar = root.AddComponent<PlayerAvatar>();
 
             var serialized = new SerializedObject(avatar);
-            SerializedProperty skins = serialized.FindProperty("_skins");
-            skins.arraySize = _PLAYER_SKIN_PATHS.Length;
-            for (int i = 0; i < _PLAYER_SKIN_PATHS.Length; ++i)
-                skins.GetArrayElementAtIndex(i).objectReferenceValue = AssetDatabase.LoadAssetAtPath<GameObject>(_PLAYER_SKIN_PATHS[i]);
+            serialized.FindProperty("_skins").objectReferenceValue = skins;
             serialized.ApplyModifiedPropertiesWithoutUndo();
 
             PrefabUtility.SaveAsPrefabAsset(root, _PLAYER_PREFAB_PATH);
@@ -313,7 +333,7 @@ public static class NgoSceneSetup
         return manager;
     }
 
-    private static void EnsureMatchObject(GameNetwork gamePrefab)
+    private static void EnsureMatchObject(GameNetwork gamePrefab, CharacterSkinsSO skins)
     {
         GameObject match = GameObject.Find("Match");
         if (match == null)
@@ -330,6 +350,12 @@ public static class NgoSceneSetup
         var view = match.GetComponent<MatchMenuView>();
         if (view == null)
             view = match.AddComponent<MatchMenuView>();
+
+        var viewSerialized = new SerializedObject(view);
+        viewSerialized.FindProperty("_skins").objectReferenceValue = skins;
+        viewSerialized.FindProperty("_itemIcon").objectReferenceValue = LoadSprite(_ITEM_SPRITES[0].path, _ITEM_SPRITES[0].name);
+        viewSerialized.FindProperty("_panelSprite").objectReferenceValue = LoadSprite(_PANEL_SPRITE_PATH, "Square");
+        viewSerialized.ApplyModifiedPropertiesWithoutUndo();
 
         var menu = match.GetComponent<MatchMenuController>();
         if (menu == null)

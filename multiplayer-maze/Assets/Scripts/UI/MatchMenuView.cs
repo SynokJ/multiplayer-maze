@@ -13,6 +13,13 @@ using UnityEngine.UI;
 /// </summary>
 public class MatchMenuView : MonoBehaviour
 {
+    [Tooltip("Optional. Shows each player's character next to their name.")]
+    [SerializeField] private CharacterSkinsSO _skins;
+    [Tooltip("Optional. Shown next to the item counter.")]
+    [SerializeField] private Sprite _itemIcon;
+    [Tooltip("Optional 9-slice sprite for every panel and button. Empty = generated rounded panels.")]
+    [SerializeField] private Sprite _panelSprite;
+
     private const float _CARD_MAX_WIDTH = 920.0f;
     private const float _CARD_SIDE_MARGIN = 24.0f;
     private const int _MIN_PLAYERS = 1;
@@ -54,7 +61,16 @@ public class MatchMenuView : MonoBehaviour
     private RectTransform _playersBox;
     private Button _readyButton;
     private Button _restartButton;
-    private readonly List<Text> _playerRows = new List<Text>();
+    private Image _itemIconImage;
+    private Text _itemsText;
+    private readonly List<PlayerRow> _playerRows = new List<PlayerRow>();
+
+    private struct PlayerRow
+    {
+        public GameObject Root;
+        public Image Portrait;
+        public Text Label;
+    }
     private bool _myReady;
 
     public string PlayerName
@@ -67,6 +83,7 @@ public class MatchMenuView : MonoBehaviour
 
     private void Awake()
     {
+        UiKit.PanelSprite = _panelSprite;
         EnsureEventSystem();
         BuildCanvas();
         BuildMenu();
@@ -135,6 +152,7 @@ public class MatchMenuView : MonoBehaviour
     {
         _roundText.text = string.Empty;
         _hudText.text = "Connecting...";
+        SetItems(string.Empty);
         _countdownText.text = string.Empty;
         _roomCard.gameObject.SetActive(true);
         _bannerText.text = "Joining the room";
@@ -143,8 +161,16 @@ public class MatchMenuView : MonoBehaviour
         _readyButton.gameObject.SetActive(false);
         _restartButton.gameObject.SetActive(false);
 
-        foreach (Text row in _playerRows)
-            row.gameObject.SetActive(false);
+        foreach (PlayerRow row in _playerRows)
+            row.Root.SetActive(false);
+    }
+
+    // The counter is an icon plus a number; without an icon it falls back to plain words.
+    private void SetItems(string count)
+    {
+        bool hasIcon = _itemIcon != null;
+        _itemIconImage.gameObject.SetActive(hasIcon && count.Length > 0);
+        _itemsText.text = hasIcon || count.Length == 0 ? count : "Items " + count;
     }
 
     public void Render(RoomSnapshot s)
@@ -154,7 +180,8 @@ public class MatchMenuView : MonoBehaviour
         bool playing = s.Phase == GamePhase.Playing;
         bool ended = s.Phase == GamePhase.Won || s.Phase == GamePhase.Lost;
 
-        _hudText.text = playing ? $"Time {s.TimeLeft}s    Items {s.Items}/{s.ItemsRequired}" : $"Items needed: {s.ItemsRequired}";
+        _hudText.text = playing ? $"Time {s.TimeLeft}s" : _itemIcon != null ? "Items needed" : string.Empty;
+        SetItems(playing ? $"{s.Items}/{s.ItemsRequired}" : s.ItemsRequired.ToString());
         _countdownText.text = s.Phase == GamePhase.Countdown ? Mathf.Max(1, s.Countdown).ToString() : string.Empty;
 
         // While playing only the top bar stays, so the whole screen is free for the joystick.
@@ -200,24 +227,36 @@ public class MatchMenuView : MonoBehaviour
     private void RenderPlayers(RoomSnapshot s)
     {
         while (_playerRows.Count < s.Players.Count)
-        {
-            Text row = UiKit.Label(_playersBox, string.Empty, 36);
-            UiKit.Size(row, height: 64.0f);
-            _playerRows.Add(row);
-        }
+            _playerRows.Add(CreatePlayerRow());
 
         for (int i = 0; i < _playerRows.Count; ++i)
         {
+            PlayerRow row = _playerRows[i];
             bool used = i < s.Players.Count;
-            _playerRows[i].gameObject.SetActive(used);
+            row.Root.SetActive(used);
             if (!used)
                 continue;
 
             RoomSnapshot.PlayerLine p = s.Players[i];
             string tags = (p.IsOwner ? " (host)" : string.Empty) + (p.IsMe ? " (you)" : string.Empty);
             string state = p.Ready ? "  <color=#4DC780>READY</color>" : string.Empty;
-            _playerRows[i].text = $"{p.Name}{tags}{state}";
+            row.Label.text = $"{p.Name}{tags}{state}";
+
+            Sprite portrait = _skins != null ? _skins.Portrait(p.Id) : null;
+            row.Portrait.sprite = portrait;
+            row.Portrait.gameObject.SetActive(portrait != null);
         }
+    }
+
+    private PlayerRow CreatePlayerRow()
+    {
+        RectTransform root = UiKit.Row(_playersBox, "PlayerRow", 76.0f, 16.0f);
+        Image portrait = UiKit.Icon(root, 44.0f, 72.0f);
+
+        Text label = UiKit.Label(root, string.Empty, 36);
+        UiKit.Size(label, flexWidth: 1.0f);
+
+        return new PlayerRow { Root = root.gameObject, Portrait = portrait, Label = label };
     }
 
     // ---- building ----
@@ -327,6 +366,12 @@ public class MatchMenuView : MonoBehaviour
         UiKit.Size(_roundText, width: 190.0f);
         _hudText = UiKit.Label(bar, string.Empty, 36, UiKit.TextMain, TextAnchor.MiddleLeft, FontStyle.Bold);
         UiKit.Size(_hudText, flexWidth: 1.0f);
+
+        _itemIconImage = UiKit.Icon(bar, 72.0f, 72.0f);
+        _itemIconImage.sprite = _itemIcon;
+        _itemsText = UiKit.Label(bar, string.Empty, 36, UiKit.TextMain, TextAnchor.MiddleLeft, FontStyle.Bold);
+        UiKit.Size(_itemsText, width: 210.0f);
+
         UiKit.Size(UiKit.Button(bar, "Leave", UiKit.Danger, 96.0f, () => LeaveRequested?.Invoke(), 32), width: 190.0f);
 
         // Big countdown number in the middle; it does not catch taps.

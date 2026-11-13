@@ -219,10 +219,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: MultiplayerMaze.Netcode::PlayerAvatar
   ShowTopMostFoldoutHeaderGroup: 1
   _speed: 8
-  _skins:
-  - {fileID: 2519032218227418821, guid: a2594307660838a449fa2bf4e811dfde, type: 3}
-  - {fileID: 8293780190885699051, guid: 892eb94db1d04b2438c046e544978a83, type: 3}
-  - {fileID: 8345629822778353325, guid: d9b17db432c8b4f478330a669bc3e731, type: 3}
+  _skins: {fileID: 11400000, guid: 2f8a6d0c4b1e47a39d5c7e82b0a1f636, type: 2}
 --- !u!114 &7340010203040506070
 MonoBehaviour:
   m_ObjectHideFlags: 0

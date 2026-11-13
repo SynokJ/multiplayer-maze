@@ -9,8 +9,7 @@ using UnityEngine;
 public class PlayerAvatar : NetworkBehaviour
 {
     [SerializeField] private float _speed = 8.0f;
-    [Tooltip("Character art (sprite + animator). Player n gets skin n, wrapping around.")]
-    [SerializeField] private GameObject[] _skins;
+    [SerializeField] private CharacterSkinsSO _skins;
 
     private Rigidbody2D _body;
     private LocalMoveInput _input;
@@ -66,13 +65,14 @@ public class PlayerAvatar : NetworkBehaviour
     // The owner id is the same on every peer, so everyone picks the same skin without any sync.
     private void ShowSkin()
     {
-        if (_skins == null || _skins.Length == 0)
+        GameObject prefab = _skins != null ? _skins.Prefab(OwnerClientId) : null;
+        if (prefab == null)
         {
             Debug.LogWarning("PlayerAvatar has no skins assigned.", this);
             return;
         }
 
-        GameObject skin = Instantiate(_skins[(int)(OwnerClientId % (ulong)_skins.Length)], transform);
+        GameObject skin = Instantiate(prefab, transform);
 
         if (_moveAnimator != null)
             _moveAnimator.SetAnimator(skin.GetComponentInChildren<Animator>());

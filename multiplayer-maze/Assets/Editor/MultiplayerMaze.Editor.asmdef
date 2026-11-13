@@ -6,7 +6,8 @@
         "MultiplayerMaze.Netcode",
         "Unity.Netcode.Runtime",
         "Unity.Collections",
-        "Unity.Networking.Transport"
+        "Unity.Networking.Transport",
+        "Unity.RenderPipelines.Universal.2D.Runtime"
     ],
     "includePlatforms": [
         "Editor"

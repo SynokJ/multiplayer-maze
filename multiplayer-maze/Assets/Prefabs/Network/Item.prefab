@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 612146278064009521}
   - component: {fileID: 8704735127507295187}
   - component: {fileID: 7805044755490586328}
+  - component: {fileID: 7340010203040506081}
   m_Layer: 0
   m_Name: Item
   m_TagString: Untagged
@@ -30,7 +31,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.8, y: 0.8, z: 0.8}
+  m_LocalScale: {x: 1.2, y: 1.2, z: 1.2}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
@@ -82,10 +83,10 @@ SpriteRenderer:
   m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: 5
+  m_SortingOrder: 0
   m_MaskInteraction: 0
   m_Sprite: {fileID: 0}
-  m_Color: {r: 1, g: 0.85, b: 0.2, a: 1}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -170,3 +171,27 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: MultiplayerMaze.Netcode::ItemPickup
   ShowTopMostFoldoutHeaderGroup: 1
+  _sprites:
+  - {fileID: 77132070, guid: af4c91dc132c8164686531b26c33e397, type: 3}
+  - {fileID: -969552361, guid: af4c91dc132c8164686531b26c33e397, type: 3}
+  - {fileID: -1898773402, guid: af4c91dc132c8164686531b26c33e397, type: 3}
+  - {fileID: 21300000, guid: f7ade3b79a976964ba0f42df409a1580, type: 3}
+  - {fileID: 21300000, guid: 67cc919339e39b344ba9390e980b1909, type: 3}
+--- !u!114 &7340010203040506081
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5327786674311881790}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9a4e2c7b1d5f4863a0b8e3c6f1d7a925, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _color: {r: 1, g: 0.86, b: 0, a: 1}
+  _intensity: 1
+  _innerRadius: 0
+  _outerRadius: 2.4
+  _falloff: 0.8
+  _offset: {x: 0, y: 0}

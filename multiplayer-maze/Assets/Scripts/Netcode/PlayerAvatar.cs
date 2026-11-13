@@ -5,14 +5,15 @@ using UnityEngine;
 /// A player's body in the maze. The owner sends only a move direction; the server moves the
 /// Rigidbody2D (so walls stop it) and NetworkTransform shows the result to everyone.
 /// </summary>
-[RequireComponent(typeof(Rigidbody2D), typeof(LocalMoveInput))]
+[RequireComponent(typeof(Rigidbody2D), typeof(LocalMoveInput), typeof(MoveAnimator))]
 public class PlayerAvatar : NetworkBehaviour
 {
     [SerializeField] private float _speed = 8.0f;
-    [SerializeField] private SpriteRenderer _renderer;
+    [SerializeField] private CharacterSkinsSO _skins;
 
     private Rigidbody2D _body;
     private LocalMoveInput _input;
+    private MoveAnimator _moveAnimator;
     private Vector2 _direction;
     private bool _canMove;
 
@@ -22,19 +23,13 @@ public class PlayerAvatar : NetworkBehaviour
     {
         _body = GetComponent<Rigidbody2D>();
         _input = GetComponent<LocalMoveInput>();
+        _moveAnimator = GetComponent<MoveAnimator>();
         _input.enabled = false;
-
-        if (_renderer == null)
-            _renderer = GetComponentInChildren<SpriteRenderer>();
-
-        if (_renderer != null && _renderer.sprite == null)
-            _renderer.sprite = PlainSprites.Circle;
     }
 
     public override void OnNetworkSpawn()
     {
-        if (_renderer != null)
-            _renderer.color = Color.HSVToRGB((OwnerClientId * 0.19f) % 1.0f, 0.65f, 1.0f);
+        ShowSkin();
 
         if (!IsOwner)
             return;
@@ -65,6 +60,22 @@ public class PlayerAvatar : NetworkBehaviour
     {
         if (IsServer)
             _body.linearVelocity = _canMove ? _direction * _speed : Vector2.zero;
+    }
+
+    // The owner id is the same on every peer, so everyone picks the same skin without any sync.
+    private void ShowSkin()
+    {
+        GameObject prefab = _skins != null ? _skins.Prefab(OwnerClientId) : null;
+        if (prefab == null)
+        {
+            Debug.LogWarning("PlayerAvatar has no skins assigned.", this);
+            return;
+        }
+
+        GameObject skin = Instantiate(prefab, transform);
+
+        if (_moveAnimator != null)
+            _moveAnimator.SetAnimator(skin.GetComponentInChildren<Animator>());
     }
 
     private void OnMoveChanged(Vector2 direction) => MoveRpc(direction);

@@ -12,13 +12,6 @@ public class HatchTrigger : NetworkBehaviour
     // Server only, before Spawn.
     public void Initialize(GameNetwork game) => _game = game;
 
-    private void Awake()
-    {
-        var spriteRenderer = GetComponentInChildren<SpriteRenderer>();
-        if (spriteRenderer != null && spriteRenderer.sprite == null)
-            spriteRenderer.sprite = PlainSprites.Square;
-    }
-
     private void OnTriggerStay2D(Collider2D other)
     {
         if (!IsServer || !IsSpawned || _game == null)

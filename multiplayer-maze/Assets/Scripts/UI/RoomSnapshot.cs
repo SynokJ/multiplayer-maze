@@ -19,6 +19,7 @@ public sealed class RoomSnapshot
 
     public struct PlayerLine
     {
+        public ulong Id;
         public string Name;
         public bool IsOwner;
         public bool IsMe;

@@ -135,6 +135,7 @@ public class MatchMenuController : MonoBehaviour
 
             _snapshot.Players.Add(new RoomSnapshot.PlayerLine
             {
+                Id = player.id,
                 Name = player.name.ToString(),
                 IsOwner = player.id == _game.RoomOwnerId,
                 IsMe = isMe,

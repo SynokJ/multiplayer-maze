@@ -23,6 +23,10 @@ public static class UiKit
 
     private static Font _font;
 
+    // 9-slice sprite for panels, buttons and fields. The menu sets it once; until then
+    // (or when none is assigned) a generated rounded sprite is used.
+    public static Sprite PanelSprite { get; set; }
+
     private static Font Font
     {
         get
@@ -52,10 +56,21 @@ public static class UiKit
     {
         RectTransform rect = Rect(parent, name);
         var image = rect.gameObject.AddComponent<Image>();
-        image.sprite = PlainSprites.Rounded;
+        image.sprite = PanelSprite != null ? PanelSprite : PlainSprites.Rounded;
         image.type = Image.Type.Sliced;
         image.color = color;
         return rect;
+    }
+
+    // A picture that keeps its proportions and does not catch taps.
+    public static Image Icon(Transform parent, float width, float height)
+    {
+        RectTransform rect = Rect(parent, "Icon");
+        var image = rect.gameObject.AddComponent<Image>();
+        image.preserveAspect = true;
+        image.raycastTarget = false;
+        Size(rect, width, height);
+        return image;
     }
 
     public static VerticalLayoutGroup Column(RectTransform rect, float spacing, int padding)

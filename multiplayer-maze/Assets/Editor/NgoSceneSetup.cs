@@ -5,6 +5,7 @@ using Unity.Netcode.Transports.UTP;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.Rendering.Universal;
 using UnityEngine.SceneManagement;
 
 /// <summary>
@@ -20,6 +21,23 @@ public static class NgoSceneSetup
     private const string _ITEM_PREFAB_PATH = _NETWORK_FOLDER + "/Item.prefab";
     private const string _HATCH_PREFAB_PATH = _NETWORK_FOLDER + "/Hatch.prefab";
     private const string _PREFAB_LIST_PATH = _NETWORK_FOLDER + "/MazeNetworkPrefabs.asset";
+    private const string _PANEL_SPRITE_PATH = "Assets/Sprites/Wall.png";
+    private const string _SKINS_PATH = "Assets/Data/CharacterSkins.asset";
+    private static readonly string[] _PLAYER_SKIN_PATHS =
+    {
+        "Assets/Prefabs/Characters/Player/Player_GFX.prefab",
+        "Assets/Prefabs/Characters/Player/Ellie_GFX.prefab",
+        "Assets/Prefabs/Characters/Player/Joil_GFX.prefab",
+    };
+    private const string _HATCH_SPRITE_PATH = "Assets/Sprites/Hatch.png";
+    private static readonly (string path, string name)[] _ITEM_SPRITES =
+    {
+        ("Assets/Sprites/Colectables_template.png", "Colectables_template_3"),
+        ("Assets/Sprites/Colectables_template.png", "Colectables_template_1"),
+        ("Assets/Sprites/Colectables_template.png", "Colectables_template_0"),
+        ("Assets/Sprites/Wallet_Item.png", null),
+        ("Assets/Sprites/Sneakers_Item.png", null),
+    };
     private const string _LEVEL_PATH = "Assets/Data/Levels/Level_01.asset";
     private const string _LEVEL_LIST_PATH = "Assets/Data/Levels/LevelList.asset";
 
@@ -48,7 +66,8 @@ public static class NgoSceneSetup
         EnsureFolder(_NETWORK_FOLDER);
 
         LevelListSO levelList = EnsureLevelList();
-        PlayerAvatar playerPrefab = EnsurePlayerPrefab();
+        CharacterSkinsSO skins = EnsureSkins();
+        PlayerAvatar playerPrefab = EnsurePlayerPrefab(skins);
         ItemPickup itemPrefab = EnsureItemPrefab();
         HatchTrigger hatchPrefab = EnsureHatchPrefab();
         GameNetwork gamePrefab = EnsureGameNetworkPrefab(levelList, playerPrefab, itemPrefab, hatchPrefab);
@@ -57,9 +76,10 @@ public static class NgoSceneSetup
         RemoveMissingScripts(scene);
 
         NetworkManager manager = EnsureNetworkManager(prefabList);
-        EnsureMatchObject(gamePrefab);
+        EnsureMatchObject(gamePrefab, skins);
         EnsureCameraFollow();
         EnsureJoystick();
+        EnsureDarkAmbient();
 
         PlayerSettings.runInBackground = true;
         EnsureSceneInBuild(scene.path);
@@ -98,16 +118,33 @@ public static class NgoSceneSetup
         return list;
     }
 
-    // The player's body is a placeholder: a circle sprite is assigned at runtime until real art exists.
-    private static PlayerAvatar EnsurePlayerPrefab()
+    // The body is physics only; the art is a skin prefab that PlayerAvatar adds as a child at spawn.
+    private static CharacterSkinsSO EnsureSkins()
+    {
+        var skins = AssetDatabase.LoadAssetAtPath<CharacterSkinsSO>(_SKINS_PATH);
+        if (skins != null)
+            return skins;
+
+        skins = ScriptableObject.CreateInstance<CharacterSkinsSO>();
+        AssetDatabase.CreateAsset(skins, _SKINS_PATH);
+
+        var serialized = new SerializedObject(skins);
+        SerializedProperty list = serialized.FindProperty("_skins");
+        list.arraySize = _PLAYER_SKIN_PATHS.Length;
+        for (int i = 0; i < _PLAYER_SKIN_PATHS.Length; ++i)
+            list.GetArrayElementAtIndex(i).objectReferenceValue = AssetDatabase.LoadAssetAtPath<GameObject>(_PLAYER_SKIN_PATHS[i]);
+        serialized.ApplyModifiedPropertiesWithoutUndo();
+
+        EditorUtility.SetDirty(skins);
+        return skins;
+    }
+
+    private static PlayerAvatar EnsurePlayerPrefab(CharacterSkinsSO skins)
     {
         if (!File.Exists(_PLAYER_PREFAB_PATH))
         {
             var root = new GameObject("Player");
             root.transform.localScale = Vector3.one * 1.2f;
-
-            var spriteRenderer = root.AddComponent<SpriteRenderer>();
-            spriteRenderer.sortingOrder = 10;
 
             var body = root.AddComponent<Rigidbody2D>();
             body.gravityScale = 0.0f;
@@ -120,7 +157,13 @@ public static class NgoSceneSetup
             root.AddComponent<NetworkTransform>();
             root.AddComponent<NetworkRigidbody2D>();
             root.AddComponent<LocalMoveInput>();
-            root.AddComponent<PlayerAvatar>();
+            root.AddComponent<MoveAnimator>();
+            AddGlow(root, Color.white, 1.0f, 2.4f, 9.6f, 0.8f, new Vector2(0.0f, 1.0f)); // the torch
+            var avatar = root.AddComponent<PlayerAvatar>();
+
+            var serialized = new SerializedObject(avatar);
+            serialized.FindProperty("_skins").objectReferenceValue = skins;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
 
             PrefabUtility.SaveAsPrefabAsset(root, _PLAYER_PREFAB_PATH);
             Object.DestroyImmediate(root);
@@ -129,23 +172,39 @@ public static class NgoSceneSetup
         return AssetDatabase.LoadAssetAtPath<GameObject>(_PLAYER_PREFAB_PATH).GetComponent<PlayerAvatar>();
     }
 
+    // A sliced texture holds several sprites, so the name picks one; a single sprite needs no name.
+    private static Sprite LoadSprite(string path, string spriteName)
+    {
+        foreach (Object asset in AssetDatabase.LoadAllAssetRepresentationsAtPath(path))
+            if (asset is Sprite sprite && (spriteName == null || sprite.name == spriteName))
+                return sprite;
+
+        return null;
+    }
+
     private static ItemPickup EnsureItemPrefab()
     {
         if (!File.Exists(_ITEM_PREFAB_PATH))
         {
             var root = new GameObject("Item");
-            root.transform.localScale = Vector3.one * 0.8f;
+            root.transform.localScale = Vector3.one * 1.2f;
 
-            var spriteRenderer = root.AddComponent<SpriteRenderer>();
-            spriteRenderer.color = new Color(1.0f, 0.85f, 0.2f);
-            spriteRenderer.sortingOrder = 5;
+            root.AddComponent<SpriteRenderer>();
 
             var trigger = root.AddComponent<CircleCollider2D>();
             trigger.radius = 0.5f;
             trigger.isTrigger = true;
 
             root.AddComponent<NetworkObject>();
-            root.AddComponent<ItemPickup>();
+            AddGlow(root, new Color(1.0f, 0.86f, 0.0f), 1.0f, 0.0f, 2.4f, 0.8f, Vector2.zero);
+            var pickup = root.AddComponent<ItemPickup>();
+
+            var serialized = new SerializedObject(pickup);
+            SerializedProperty sprites = serialized.FindProperty("_sprites");
+            sprites.arraySize = _ITEM_SPRITES.Length;
+            for (int i = 0; i < _ITEM_SPRITES.Length; ++i)
+                sprites.GetArrayElementAtIndex(i).objectReferenceValue = LoadSprite(_ITEM_SPRITES[i].path, _ITEM_SPRITES[i].name);
+            serialized.ApplyModifiedPropertiesWithoutUndo();
 
             PrefabUtility.SaveAsPrefabAsset(root, _ITEM_PREFAB_PATH);
             Object.DestroyImmediate(root);
@@ -159,15 +218,18 @@ public static class NgoSceneSetup
         if (!File.Exists(_HATCH_PREFAB_PATH))
         {
             var root = new GameObject("Hatch");
-            root.transform.localScale = Vector3.one * 2.0f;
+            root.transform.localScale = Vector3.one * 1.2f;
 
             var spriteRenderer = root.AddComponent<SpriteRenderer>();
-            spriteRenderer.color = new Color(0.2f, 0.8f, 0.4f);
-            spriteRenderer.sortingOrder = 4;
+            spriteRenderer.sprite = AssetDatabase.LoadAssetAtPath<Sprite>(_HATCH_SPRITE_PATH);
+            spriteRenderer.sortingOrder = -2;
 
-            root.AddComponent<BoxCollider2D>().isTrigger = true;
+            var trigger = root.AddComponent<BoxCollider2D>();
+            trigger.size = Vector2.one;
+            trigger.isTrigger = true;
             root.AddComponent<NetworkObject>();
             root.AddComponent<HatchTrigger>();
+            AddGlow(root, new Color(0.98f, 0.333f, 0.254f, 0.553f), 2.21f, 0.0f, 2.1f, 0.661f, Vector2.zero);
 
             PrefabUtility.SaveAsPrefabAsset(root, _HATCH_PREFAB_PATH);
             Object.DestroyImmediate(root);
@@ -271,7 +333,7 @@ public static class NgoSceneSetup
         return manager;
     }
 
-    private static void EnsureMatchObject(GameNetwork gamePrefab)
+    private static void EnsureMatchObject(GameNetwork gamePrefab, CharacterSkinsSO skins)
     {
         GameObject match = GameObject.Find("Match");
         if (match == null)
@@ -289,6 +351,12 @@ public static class NgoSceneSetup
         if (view == null)
             view = match.AddComponent<MatchMenuView>();
 
+        var viewSerialized = new SerializedObject(view);
+        viewSerialized.FindProperty("_skins").objectReferenceValue = skins;
+        viewSerialized.FindProperty("_itemIcon").objectReferenceValue = LoadSprite(_ITEM_SPRITES[0].path, _ITEM_SPRITES[0].name);
+        viewSerialized.FindProperty("_panelSprite").objectReferenceValue = LoadSprite(_PANEL_SPRITE_PATH, "Square");
+        viewSerialized.ApplyModifiedPropertiesWithoutUndo();
+
         var menu = match.GetComponent<MatchMenuController>();
         if (menu == null)
             menu = match.AddComponent<MatchMenuController>();
@@ -297,6 +365,30 @@ public static class NgoSceneSetup
         menuSerialized.FindProperty("_view").objectReferenceValue = view;
         menuSerialized.FindProperty("_roomServer").objectReferenceValue = roomServer;
         menuSerialized.ApplyModifiedPropertiesWithoutUndo();
+    }
+
+    private static void AddGlow(GameObject target, Color color, float intensity, float inner, float outer, float falloff, Vector2 offset)
+    {
+        var serialized = new SerializedObject(target.AddComponent<LightGlow>());
+        serialized.FindProperty("_color").colorValue = color;
+        serialized.FindProperty("_intensity").floatValue = intensity;
+        serialized.FindProperty("_innerRadius").floatValue = inner;
+        serialized.FindProperty("_outerRadius").floatValue = outer;
+        serialized.FindProperty("_falloff").floatValue = falloff;
+        serialized.FindProperty("_offset").vector2Value = offset;
+        serialized.ApplyModifiedPropertiesWithoutUndo();
+    }
+
+    // The maze is dark and the players' torches light it, like the old game. Only a Global Light
+    // still at the URP default (1) is lowered, so a value you chose yourself is kept.
+    private static void EnsureDarkAmbient()
+    {
+        foreach (Light2D light in Object.FindObjectsByType<Light2D>(FindObjectsInactive.Include))
+            if (light.lightType == Light2D.LightType.Global && Mathf.Approximately(light.intensity, 1.0f))
+            {
+                light.intensity = 0.0f;
+                EditorUtility.SetDirty(light);
+            }
     }
 
     private static void EnsureJoystick()

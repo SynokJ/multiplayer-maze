@@ -244,7 +244,9 @@ public class NgoRoomServer : MonoBehaviour, IPlayerSource
 
         while (IsRunning)
         {
-            string body = "{\"players\":" + NetworkManager.Singleton.ConnectedClientsIds.Count + "}";
+            // "lobby" rooms still accept players; anything else (countdown, playing, result) does not.
+            string state = Game != null && Game.Phase.Value == GamePhase.Lobby ? "lobby" : "playing";
+            string body = "{\"players\":" + NetworkManager.Singleton.ConnectedClientsIds.Count + ",\"state\":\"" + state + "\"}";
 
             using (var request = new UnityWebRequest(_options.LobbyUrl + "/internal/rooms/" + _options.RoomId + "/heartbeat", "POST"))
             {

@@ -10,8 +10,6 @@ public class MazeBuilder : MonoBehaviour
 
     private const string _WALLS_ROOT_NAME = "Walls";
 
-    private static Sprite _whiteSprite;
-
     public MazeWallStyle DefaultStyle => _defaultStyle;
 
     public void Build(MazeData data) => Build(data, _defaultStyle);
@@ -96,26 +94,11 @@ public class MazeBuilder : MonoBehaviour
         wall.transform.SetParent(root, false);
 
         var spriteRenderer = wall.AddComponent<SpriteRenderer>();
-        spriteRenderer.sprite = GetWhiteSprite();
+        spriteRenderer.sprite = PlainSprites.Square;
         spriteRenderer.color = style.wallColor;
 
         wall.AddComponent<BoxCollider2D>();
         return wall;
-    }
-
-    private static Sprite GetWhiteSprite()
-    {
-        if (_whiteSprite != null)
-            return _whiteSprite;
-
-        var texture = new Texture2D(1, 1) { hideFlags = HideFlags.HideAndDontSave };
-        texture.SetPixel(0, 0, Color.white);
-        texture.Apply();
-
-        // 1 pixel per unit: localScale then equals the wall size in world units.
-        _whiteSprite = Sprite.Create(texture, new Rect(0, 0, 1, 1), new Vector2(0.5f, 0.5f), 1.0f);
-        _whiteSprite.hideFlags = HideFlags.HideAndDontSave;
-        return _whiteSprite;
     }
 
     // Walls are rebuilt from the seed, so walls made in Edit mode must not be saved into the scene.

@@ -17,6 +17,10 @@ public class LevelConfigSO : ScriptableObject
     [Header("Walls:")]
     [SerializeField] private MazeWallStyle _wallStyle = MazeWallStyle.Default;
 
+    [Header("Rules:")]
+    [SerializeField] private GameRules _rules = GameRules.Default;
+
+    public GameRules Rules => _rules;
     public int Width => _width;
     public int Height => _height;
     public bool UseFixedSeed => _useFixedSeed;

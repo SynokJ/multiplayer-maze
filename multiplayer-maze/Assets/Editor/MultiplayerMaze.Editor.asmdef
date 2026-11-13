@@ -2,7 +2,11 @@
     "name": "MultiplayerMaze.Editor",
     "rootNamespace": "",
     "references": [
-        "MultiplayerMaze.Runtime"
+        "MultiplayerMaze.Runtime",
+        "MultiplayerMaze.Netcode",
+        "Unity.Netcode.Runtime",
+        "Unity.Collections",
+        "Unity.Networking.Transport"
     ],
     "includePlatforms": [
         "Editor"

@@ -1,0 +1,4 @@
+repository "multiplayer-maze/multiplayer-maze@18967482542701@cloud"
+  path "/"
+    br "/main"
+    co "/main"

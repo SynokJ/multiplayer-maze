@@ -20,12 +20,6 @@ public static class NgoSceneSetup
     private const string _ITEM_PREFAB_PATH = _NETWORK_FOLDER + "/Item.prefab";
     private const string _HATCH_PREFAB_PATH = _NETWORK_FOLDER + "/Hatch.prefab";
     private const string _PREFAB_LIST_PATH = _NETWORK_FOLDER + "/MazeNetworkPrefabs.asset";
-    private static readonly string[] _PLAYER_SKIN_PATHS =
-    {
-        "Assets/Prefabs/Characters/Player/Player_GFX.prefab",
-        "Assets/Prefabs/Characters/Player/Ellie_GFX.prefab",
-        "Assets/Prefabs/Characters/Player/Joil_GFX.prefab",
-    };
     private const string _LEVEL_PATH = "Assets/Data/Levels/Level_01.asset";
     private const string _LEVEL_LIST_PATH = "Assets/Data/Levels/LevelList.asset";
 
@@ -104,13 +98,16 @@ public static class NgoSceneSetup
         return list;
     }
 
-    // The body is physics only; the art is a skin prefab that PlayerAvatar adds as a child at spawn.
+    // The player's body is a placeholder: a circle sprite is assigned at runtime until real art exists.
     private static PlayerAvatar EnsurePlayerPrefab()
     {
         if (!File.Exists(_PLAYER_PREFAB_PATH))
         {
             var root = new GameObject("Player");
             root.transform.localScale = Vector3.one * 1.2f;
+
+            var spriteRenderer = root.AddComponent<SpriteRenderer>();
+            spriteRenderer.sortingOrder = 10;
 
             var body = root.AddComponent<Rigidbody2D>();
             body.gravityScale = 0.0f;
@@ -123,15 +120,7 @@ public static class NgoSceneSetup
             root.AddComponent<NetworkTransform>();
             root.AddComponent<NetworkRigidbody2D>();
             root.AddComponent<LocalMoveInput>();
-            root.AddComponent<MoveAnimator>();
-            var avatar = root.AddComponent<PlayerAvatar>();
-
-            var serialized = new SerializedObject(avatar);
-            SerializedProperty skins = serialized.FindProperty("_skins");
-            skins.arraySize = _PLAYER_SKIN_PATHS.Length;
-            for (int i = 0; i < _PLAYER_SKIN_PATHS.Length; ++i)
-                skins.GetArrayElementAtIndex(i).objectReferenceValue = AssetDatabase.LoadAssetAtPath<GameObject>(_PLAYER_SKIN_PATHS[i]);
-            serialized.ApplyModifiedPropertiesWithoutUndo();
+            root.AddComponent<PlayerAvatar>();
 
             PrefabUtility.SaveAsPrefabAsset(root, _PLAYER_PREFAB_PATH);
             Object.DestroyImmediate(root);

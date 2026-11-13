@@ -1,0 +1,103 @@
+name: Deploy
+
+# Copies the artifacts of a successful CI run on main to the server over SSH:
+#   WebGL client -> $DEPLOY_WEB_DIR (served by nginx), Linux room server -> $DEPLOY_SERVER_DIR.
+# Rooms that are already running keep their old build; new rooms start from the new one.
+# The lobby is not touched. Run it by hand from the Actions tab to redeploy any CI run.
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: 'CI run to deploy (empty = the latest successful CI run on main)'
+        required: false
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  deploy:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    # A GitHub-hosted runner cannot reach a private address such as 192.168.1.50. For a server
+    # on your own network, install a self-hosted runner there and set the repository
+    # variable DEPLOY_RUNNER to its label (for example: self-hosted).
+    runs-on: ${{ vars.DEPLOY_RUNNER || 'ubuntu-latest' }}
+    environment: production   # optional: add required reviewers under Settings > Environments
+    timeout-minutes: 20
+    env:
+      DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+      DEPLOY_PORT: ${{ secrets.DEPLOY_PORT || '22' }}
+      DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+      WEB_DIR: ${{ vars.DEPLOY_WEB_DIR || '/var/www/maze' }}
+      SERVER_DIR: ${{ vars.DEPLOY_SERVER_DIR || '/opt/maze-server' }}
+    steps:
+      - name: Find the CI run
+        id: run
+        env:
+          GH_TOKEN: ${{ github.token }}
+          INPUT_RUN_ID: ${{ inputs.run_id }}
+          EVENT_RUN_ID: ${{ github.event.workflow_run.id }}
+        run: |
+          id="${INPUT_RUN_ID:-$EVENT_RUN_ID}"
+          if [ -z "$id" ]; then
+            id=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow ci.yml --branch main --status success --limit 1 --json databaseId --jq '.[0].databaseId')
+          fi
+          if [ -z "$id" ]; then
+            echo "No successful CI run found on main." >&2
+            exit 1
+          fi
+          echo "Deploying the artifacts of CI run $id"
+          echo "id=$id" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: webgl
+          path: artifacts/webgl
+          run-id: ${{ steps.run.outputs.id }}
+          github-token: ${{ github.token }}
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: linux-server
+          path: artifacts/server
+          run-id: ${{ steps.run.outputs.id }}
+          github-token: ${{ github.token }}
+
+      - name: Prepare SSH
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+
+      - name: Upload
+        run: |
+          SSH="ssh -i $HOME/.ssh/deploy_key -p $DEPLOY_PORT -o BatchMode=yes -o StrictHostKeyChecking=yes"
+          TARGET="$DEPLOY_USER@$DEPLOY_HOST"
+
+          # The site is only the build, so files that are gone from it are removed.
+          rsync -rltz --delete --exclude='*_BurstDebugInformation_DoNotShip' -e "$SSH" \
+            artifacts/webgl/ "$TARGET:$WEB_DIR/"
+
+          # The server folder also holds the lobby and the room logs, so nothing is deleted there.
+          rsync -rltz --exclude='*_BurstDebugInformation_DoNotShip' -e "$SSH" \
+            artifacts/server/ "$TARGET:$SERVER_DIR/"
+
+          # Artifacts do not keep the executable bit.
+          $SSH "$TARGET" "chmod +x '$SERVER_DIR/MazeServer.x86_64'"
+
+      - name: Remove the key
+        if: always()
+        run: rm -f ~/.ssh/deploy_key ~/.ssh/known_hosts

@@ -1,0 +1,116 @@
+name: CI
+
+# Every push and pull request runs the EditMode tests.
+# Pushes to main and dev (and manual runs) also build the WebGL client and the Linux room
+# server with the same BuildTools methods as the Maze > Build menu, and keep them as artifacts.
+
+on:
+  pull_request:
+    paths-ignore:
+      - '**.md'
+  push:
+    branches: [main, dev]
+    paths-ignore:
+      - '**.md'
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  checks: write   # the test runner publishes a check with the results
+
+env:
+  PROJECT_PATH: multiplayer-maze
+
+jobs:
+  tests:
+    name: EditMode tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/cache@v4
+        with:
+          path: ${{ env.PROJECT_PATH }}/Library
+          key: Library-tests-${{ hashFiles('multiplayer-maze/Assets/**', 'multiplayer-maze/Packages/**', 'multiplayer-maze/ProjectSettings/**') }}
+          restore-keys: Library-tests-
+
+      - uses: game-ci/unity-test-runner@v4
+        id: tests
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          projectPath: ${{ env.PROJECT_PATH }}
+          testMode: editmode
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
+          checkName: EditMode test results
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: ${{ steps.tests.outputs.artifactsPath }}
+
+  build:
+    name: Build ${{ matrix.name }}
+    needs: tests
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: WebGL client
+            artifact: webgl
+            targetPlatform: WebGL
+            buildMethod: BuildTools.BuildWebGL
+            output: multiplayer-maze/Builds/WebGL
+          - name: Linux room server
+            artifact: linux-server
+            targetPlatform: StandaloneLinux64
+            buildMethod: BuildTools.BuildLinuxServer
+            output: multiplayer-maze/Builds/LinuxServer
+    steps:
+      # The Unity images are large; free some space on the runner first.
+      - uses: jlumbroso/free-disk-space@v1.3.1
+        with:
+          tool-cache: false
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: false
+          docker-images: false
+          swap-storage: true
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/cache@v4
+        with:
+          path: ${{ env.PROJECT_PATH }}/Library
+          key: Library-${{ matrix.targetPlatform }}-${{ hashFiles('multiplayer-maze/Assets/**', 'multiplayer-maze/Packages/**', 'multiplayer-maze/ProjectSettings/**') }}
+          restore-keys: Library-${{ matrix.targetPlatform }}-
+
+      - uses: game-ci/unity-builder@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          projectPath: ${{ env.PROJECT_PATH }}
+          targetPlatform: ${{ matrix.targetPlatform }}
+          buildMethod: ${{ matrix.buildMethod }}
+          versioning: None
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.output }}
+          if-no-files-found: error
+          retention-days: 14

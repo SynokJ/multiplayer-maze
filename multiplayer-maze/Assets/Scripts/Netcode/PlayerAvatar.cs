@@ -24,7 +24,6 @@ public class PlayerAvatar : NetworkBehaviour
         _body = GetComponent<Rigidbody2D>();
         _input = GetComponent<LocalMoveInput>();
         _moveAnimator = GetComponent<MoveAnimator>();
-        _input.enabled = false;
     }
 
     public override void OnNetworkSpawn()
@@ -34,7 +33,7 @@ public class PlayerAvatar : NetworkBehaviour
         if (!IsOwner)
             return;
 
-        _input.enabled = true;
+        _input.Begin();
         _input.MoveChanged += OnMoveChanged;
 
         var follow = FindAnyObjectByType<CameraFollow>();
@@ -45,7 +44,7 @@ public class PlayerAvatar : NetworkBehaviour
     public override void OnNetworkDespawn()
     {
         _input.MoveChanged -= OnMoveChanged;
-        _input.enabled = false;
+        _input.End();
     }
 
     // Server only: the round decides when players may move.
@@ -73,6 +72,9 @@ public class PlayerAvatar : NetworkBehaviour
         }
 
         GameObject skin = Instantiate(prefab, transform);
+
+        // The art is centred on the body, whatever position the skin prefab was saved with.
+        skin.transform.localPosition = Vector3.zero;
 
         if (_moveAnimator != null)
             _moveAnimator.SetAnimator(skin.GetComponentInChildren<Animator>());

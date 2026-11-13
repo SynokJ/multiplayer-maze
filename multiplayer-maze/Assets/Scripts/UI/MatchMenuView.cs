@@ -184,16 +184,17 @@ public class MatchMenuView : MonoBehaviour
         SetItems(playing ? $"{s.Items}/{s.ItemsRequired}" : s.ItemsRequired.ToString());
         _countdownText.text = s.Phase == GamePhase.Countdown ? Mathf.Max(1, s.Countdown).ToString() : string.Empty;
 
-        // While playing only the top bar stays, so the whole screen is free for the joystick.
-        _roomCard.gameObject.SetActive(!playing);
+        // From the countdown on only the top bar stays: nobody can change ready any more and
+        // the whole screen is free for the maze and the joystick.
+        bool countdown = s.Phase == GamePhase.Countdown;
+        _roomCard.gameObject.SetActive(!playing && !countdown);
 
         _bannerText.text = Banner(s);
         _bannerText.color = s.Phase == GamePhase.Won ? UiKit.Good : s.Phase == GamePhase.Lost ? UiKit.Danger : UiKit.TextMain;
         _hintText.text = Hint(s);
 
         _myReady = s.MyReady;
-        bool canReady = s.Phase == GamePhase.Lobby || s.Phase == GamePhase.Countdown;
-        _readyButton.gameObject.SetActive(canReady);
+        _readyButton.gameObject.SetActive(s.Phase == GamePhase.Lobby);
         UiKit.SetButtonText(_readyButton, s.MyReady ? "Not ready" : "Ready");
 
         _restartButton.gameObject.SetActive(ended && s.IsOwner);
@@ -207,7 +208,6 @@ public class MatchMenuView : MonoBehaviour
         {
             case GamePhase.Won: return "You escaped!";
             case GamePhase.Lost: return s.Reason == FinishReason.TimeUp ? "Time is up" : "Everyone was caught";
-            case GamePhase.Countdown: return "Get ready";
             default: return "Lobby";
         }
     }
@@ -217,7 +217,6 @@ public class MatchMenuView : MonoBehaviour
         switch (s.Phase)
         {
             case GamePhase.Lobby: return "The round starts when everyone is ready.";
-            case GamePhase.Countdown: return "Starting soon. Tap Not ready to wait.";
             case GamePhase.Won:
             case GamePhase.Lost: return s.IsOwner ? string.Empty : "Waiting for the host to start another round.";
             default: return string.Empty;

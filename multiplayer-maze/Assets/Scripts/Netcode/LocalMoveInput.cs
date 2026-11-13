@@ -4,7 +4,7 @@ using UnityEngine.InputSystem;
 
 /// <summary>
 /// Reads the local player's wish to move (WASD or arrows, or the on-screen joystick) and raises
-/// it when it changes. Only the local player's avatar enables it; it decides nothing about the game.
+/// it when it changes. Only the local player's avatar calls Begin; it decides nothing about the game.
 /// </summary>
 public class LocalMoveInput : MonoBehaviour
 {
@@ -13,26 +13,41 @@ public class LocalMoveInput : MonoBehaviour
 
     private FloatingJoystick _joystick;
     private Vector2 _last;
+    private bool _active;
 
     public event Action<Vector2> MoveChanged;
 
-    private void OnEnable()
+    // The joystick is shared by the whole scene, so only the avatar that owns the input may
+    // switch it. (Enabling and disabling the component did it for every avatar, so another
+    // player's avatar spawning or leaving turned the stick off for the local player.)
+    public void Begin()
     {
         _joystick = FindAnyObjectByType<FloatingJoystick>();
         if (_joystick != null)
             _joystick.SetListening(true);
+
+        _active = true;
     }
 
-    private void OnDisable()
+    public void End()
     {
+        if (!_active)
+            return;
+
+        _active = false;
+        _last = Vector2.zero;
+
         if (_joystick != null)
             _joystick.SetListening(false);
-
-        _last = Vector2.zero;
     }
+
+    private void OnDestroy() => End();
 
     private void Update()
     {
+        if (!_active)
+            return;
+
         Vector2 move = ReadKeyboard();
         if (move == Vector2.zero && _joystick != null)
             move = _joystick.Value;

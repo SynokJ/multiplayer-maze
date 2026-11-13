@@ -8,8 +8,6 @@ using UnityEngine;
 [RequireComponent(typeof(Rigidbody2D), typeof(LocalMoveInput), typeof(MoveAnimator))]
 public class PlayerAvatar : NetworkBehaviour
 {
-    private const int _SORTING_ORDER = 10;
-
     [SerializeField] private float _speed = 8.0f;
     [Tooltip("Character art (sprite + animator). Player n gets skin n, wrapping around.")]
     [SerializeField] private GameObject[] _skins;
@@ -75,9 +73,6 @@ public class PlayerAvatar : NetworkBehaviour
         }
 
         GameObject skin = Instantiate(_skins[(int)(OwnerClientId % (ulong)_skins.Length)], transform);
-
-        foreach (SpriteRenderer spriteRenderer in skin.GetComponentsInChildren<SpriteRenderer>())
-            spriteRenderer.sortingOrder = _SORTING_ORDER;
 
         if (_moveAnimator != null)
             _moveAnimator.SetAnimator(skin.GetComponentInChildren<Animator>());

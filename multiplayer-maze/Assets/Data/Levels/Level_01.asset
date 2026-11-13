@@ -17,10 +17,16 @@ MonoBehaviour:
   _useFixedSeed: 0
   _fixedSeed: 12345
   _wallStyle:
-    cellSize: 4
+    cellSize: 6
     wallThickness: 0.1
-    wallPrefab: {fileID: 8032692738926109807, guid: dbf585fb055ad234ea904322145e6539, type: 3}
-    wallColor: {r: 1, g: 0.7601948, b: 0, a: 1}
+    wallPrefab: {fileID: 6100000000000000001, guid: 5e7a9c1d2b3f4a608c1d9e0f7a6b5c42, type: 3}
+    wallColor: {r: 1, g: 1, b: 1, a: 1}
+    floorSprites:
+    - {fileID: -1590103196, guid: 84e3c4106aa95644e84d2c917a2f3e04, type: 3}
+    - {fileID: -1668101693, guid: 84e3c4106aa95644e84d2c917a2f3e04, type: 3}
+    - {fileID: -706258539, guid: 84e3c4106aa95644e84d2c917a2f3e04, type: 3}
+    - {fileID: -925064975, guid: 84e3c4106aa95644e84d2c917a2f3e04, type: 3}
+    floorTileSize: 1
   _rules:
     timeLimitSeconds: 120
     itemsRequired: 5

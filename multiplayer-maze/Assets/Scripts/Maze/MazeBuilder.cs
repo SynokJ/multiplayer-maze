@@ -9,6 +9,10 @@ public class MazeBuilder : MonoBehaviour
     [SerializeField] private MazeWallStyle _defaultStyle = MazeWallStyle.Default;
 
     private const string _WALLS_ROOT_NAME = "Walls";
+    private const string _FLOOR_ROOT_NAME = "Floor";
+    private const int _FLOOR_SORTING_ORDER = -100;
+
+    private Sprite _floorPattern;
 
     public MazeWallStyle DefaultStyle => _defaultStyle;
 
@@ -18,7 +22,9 @@ public class MazeBuilder : MonoBehaviour
     {
         Clear();
 
-        Transform root = GetOrCreateWallsRoot();
+        BuildFloor(data, style);
+
+        Transform root = GetOrCreateRoot(_WALLS_ROOT_NAME);
 
         // Neighbouring cells share walls, so each wall is spawned once:
         // every cell owns its north and east wall, border cells also own south and west.
@@ -41,12 +47,9 @@ public class MazeBuilder : MonoBehaviour
 
     public void Clear()
     {
-        Transform root = transform.Find(_WALLS_ROOT_NAME);
-        if (root == null)
-            return;
-
-        for (int i = root.childCount - 1; i >= 0; --i)
-            DestroyObject(root.GetChild(i).gameObject);
+        ClearRoot(_WALLS_ROOT_NAME);
+        ClearRoot(_FLOOR_ROOT_NAME);
+        DestroyFloorPattern();
     }
 
     public Vector2 CellToWorld(int mazeWidth, int mazeHeight, int x, int y, float cellSize)
@@ -56,16 +59,85 @@ public class MazeBuilder : MonoBehaviour
     public Vector2 GridOrigin(int mazeWidth, int mazeHeight, float cellSize)
         => new Vector2(-mazeWidth, -mazeHeight) * (cellSize * 0.5f);
 
-    private Transform GetOrCreateWallsRoot()
+    private void ClearRoot(string rootName)
     {
-        Transform root = transform.Find(_WALLS_ROOT_NAME);
+        Transform root = transform.Find(rootName);
+        if (root == null)
+            return;
+
+        for (int i = root.childCount - 1; i >= 0; --i)
+            DestroyObject(root.GetChild(i).gameObject);
+    }
+
+    private Transform GetOrCreateRoot(string rootName)
+    {
+        Transform root = transform.Find(rootName);
         if (root != null)
             return root;
 
-        var rootObject = new GameObject(_WALLS_ROOT_NAME);
+        var rootObject = new GameObject(rootName);
         rootObject.transform.SetParent(transform, false);
         ExcludeFromScene(rootObject);
         return rootObject.transform;
+    }
+
+    // The floor slices are joined back into one pattern sprite and tiled over the whole maze:
+    // one renderer however big the maze is.
+    private void BuildFloor(MazeData data, MazeWallStyle style)
+    {
+        Sprite pattern = CreateFloorPattern(style.floorSprites, out int tilesPerSide);
+        if (pattern == null)
+            return;
+
+        _floorPattern = pattern;
+
+        float tile = style.floorTileSize > 0.0f ? style.floorTileSize : style.cellSize;
+        float scale = tile * tilesPerSide / pattern.bounds.size.x;
+
+        var floor = new GameObject("Floor");
+        floor.transform.SetParent(GetOrCreateRoot(_FLOOR_ROOT_NAME), false);
+        floor.transform.localScale = new Vector3(scale, scale, 1.0f);
+
+        var spriteRenderer = floor.AddComponent<SpriteRenderer>();
+        spriteRenderer.sprite = pattern;
+        spriteRenderer.drawMode = SpriteDrawMode.Tiled;
+        spriteRenderer.tileMode = SpriteTileMode.Continuous;
+        spriteRenderer.size = new Vector2(data.width, data.height) * (style.cellSize / scale);
+        spriteRenderer.sortingOrder = _FLOOR_SORTING_ORDER;
+        ExcludeFromScene(floor);
+    }
+
+    private static Sprite CreateFloorPattern(Sprite[] slices, out int tilesPerSide)
+    {
+        tilesPerSide = 1;
+        if (slices == null || slices.Length == 0 || slices[0] == null)
+            return null;
+
+        Rect area = slices[0].rect;
+        foreach (Sprite slice in slices)
+            if (slice != null)
+                area = Rect.MinMaxRect(Mathf.Min(area.xMin, slice.rect.xMin), Mathf.Min(area.yMin, slice.rect.yMin),
+                    Mathf.Max(area.xMax, slice.rect.xMax), Mathf.Max(area.yMax, slice.rect.yMax));
+
+        tilesPerSide = Mathf.Max(1, Mathf.RoundToInt(Mathf.Sqrt(slices.Length)));
+
+        // Tiled drawing needs a full-rect sprite.
+        Sprite pattern = Sprite.Create(slices[0].texture, area, new Vector2(0.5f, 0.5f), slices[0].pixelsPerUnit, 0, SpriteMeshType.FullRect);
+        pattern.hideFlags = HideFlags.HideAndDontSave;
+        return pattern;
+    }
+
+    private void DestroyFloorPattern()
+    {
+        if (_floorPattern == null)
+            return;
+
+        if (Application.isPlaying)
+            Destroy(_floorPattern);
+        else
+            DestroyImmediate(_floorPattern);
+
+        _floorPattern = null;
     }
 
     // (gridX, gridY) is the wall's start corner; a wall runs along +x (horizontal) or +y (vertical).
@@ -84,7 +156,13 @@ public class MazeBuilder : MonoBehaviour
         GameObject wall = style.wallPrefab != null ? Instantiate(style.wallPrefab, root) : CreatePlainWall(root, style);
 
         wall.transform.localPosition = local;
-        wall.transform.localScale = new Vector3(size.x, size.y, 1.0f);
+
+        // A MazeWall sizes its own collider and art; any other prefab is simply scaled.
+        if (wall.TryGetComponent(out MazeWall mazeWall))
+            mazeWall.Resize(size, horizontal);
+        else
+            wall.transform.localScale = new Vector3(size.x, size.y, 1.0f);
+
         ExcludeFromScene(wall);
     }
 
